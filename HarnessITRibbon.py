@@ -15,6 +15,7 @@ class Ribbon():
         self.selectImage = tk.PhotoImage(file="resources/images/select.png")
         self.openLibraryimage = tk.PhotoImage(file = "resources/images/library.png")
         self.flipConnectorImage = tk.PhotoImage(file = "resources/images/flip.png")
+        self.cutsheetImage = tk.PhotoImage(file="resources/images/cutlist.png")
 
 
         #load buttons
@@ -44,6 +45,10 @@ class Ribbon():
         self.flipConnectorButton = ttk.Button(self.frame, text = "Flip Connector", image = self.flipConnectorImage,command=self.app.flip)
         self.flipConnectorButton.pack(side="left")
         tktooltip.ToolTip(self.flipConnectorButton,"Flip Button",1)
+
+        self.generateCutsheetButton = ttk.Button(self.frame, text = "generate Cutsheet", image = self.cutsheetImage, command = self.app.generate_cutlist)
+        self.generateCutsheetButton.pack(side = tk.LEFT)
+        tktooltip.ToolTip(self.generateCutsheetButton,"generate cutsheet",1)
 
 
 

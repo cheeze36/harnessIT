@@ -54,6 +54,7 @@ class HarnessITWindow():
 
         self.libwin = None
         self.wirenodes = []
+        self.cutlistdata = {}
 
 
         self.ribbon = HarnessITRibbon.Ribbon(self.root,self)
@@ -145,8 +146,25 @@ class HarnessITWindow():
     def generate_cutlist(self,*args):
         self.tabControl.select(self.tabControl.index(1))
         print(self.tabControl.select())
+        row = 1
         for w in self.HDF.wires:
-            print(w.name)
+            left = w.nodeA.get_name()
+            leftentry = tk.Entry(self.CutListEditTab, width=20)
+            leftentry.insert(0,left)
+            leftentry.grid(row = row,column=0)
+            wirename = w.name
+            nameentry = tk.Entry(self.CutListEditTab, width=20)
+            nameentry.insert(0, wirename)
+            nameentry.grid(row=row, column=1)
+            right = w.nodeD.get_name()
+            rightentry = tk.Entry(self.CutListEditTab, width=20)
+            rightentry.insert(0, right)
+            rightentry.grid(row=row, column=2)
+
+
+            row +=1
+
+            #self.cutlistdata
     def wire_mode(self,*args):
         self.root.config(cursor="spider")
         self.root.bind("<ButtonRelease-1>", self.add_wire)
