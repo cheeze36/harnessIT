@@ -1,0 +1,20 @@
+ID,MFR,MFR_Part_Number,Internal_Part_Number,Positions,Rows,Gender,Termination,Description,ImageLocation
+0001,Molex,0010112024,1000AGxxxx,2,1,Female,Crimped,2 pin .100 connector white,resources/library/images/twopin.png
+0002,Molex,0022011042,1000AGxxxx,4,1,Female,Crimped,4 pin .100 connector white,resources/library/images/fourpin.png
+0003,Generic,None,1000AGxxxx,1,1,None,Crimped,12-10 gauge ring terminal,resources/library/images/yellowring.png
+0004,Generic,None,1000AG,1,1,None,Crimped,16-14 gauge ring terminal,resources/library/images/bluering.png
+0005,Generic,None,1000AG,1,1,None,Crimped,22-18 gauge ring terminal,resources/library/images/redring.png
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
