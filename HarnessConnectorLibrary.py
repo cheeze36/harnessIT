@@ -1,10 +1,25 @@
+"""
+This module defines the connector library window for the HarnessIT application.
+"""
+
 import tkinter as tk
 import tkinter.ttk as ttk
 import csv
 
 
 class ConnectorLibrary():
-    def __init__(self,parent,app):
+    """
+    The connector library window for the HarnessIT application.
+    """
+    def __init__(self,parent,app, callback=None):
+        """
+        Initializes the ConnectorLibrary.
+
+        Args:
+            parent: The parent widget.
+            app: The main application instance.
+            callback (function, optional): A callback function to be called when a connector is selected. Defaults to None.
+        """
         self.app = app
         self.parent = parent
         self.window = tk.Toplevel(self.parent)
@@ -17,12 +32,19 @@ class ConnectorLibrary():
         self.scrollbar.config(command=self.scroll)
         self.frame.pack(side=tk.LEFT,fill=tk.BOTH)#grid(column=0, row=0)
         self.top = 0
+        self.callback = callback
 
 
     def printargs(self,*args):
+        """
+        Prints the given arguments to the console.
+        """
         for i in args:
             print(i)
     def scroll(self,cm = 0,amount=0,units=0):
+        """
+        Scrolls the library table.
+        """
         if cm == "scroll":
             if self.top <= 0:
                 self.top -= int(amount)
@@ -44,6 +66,9 @@ class ConnectorLibrary():
             normalized_scoll_pos = 0
         self.scrollbar.set(normalized_scoll_pos,normalized_scoll_pos +.01)
     def load_library_table(self, rw = 0):
+        """
+        Loads the connector library table.
+        """
         r = rw
         #c = 0
         for i in self.app.library:
@@ -61,5 +86,3 @@ class ConnectorLibrary():
                 descEntry.insert(0,i["Description"])
                 descEntry.grid(column=3,row=r)
             r += 1
-
-

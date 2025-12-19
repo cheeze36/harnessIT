@@ -1,3 +1,7 @@
+"""
+This module defines the drawing frame for the HarnessIT application.
+"""
+
 import tkinter
 
 import pygame
@@ -8,7 +12,17 @@ import HarnessComponents
 import HarnessITUtils
 
 class DrawFrame():
+    """
+    The drawing frame for the HarnessIT application.
+    """
     def __init__(self,parent,app ):#= tk.Tk()):
+        """
+        Initializes the DrawFrame.
+
+        Args:
+            parent: The parent widget.
+            app: The main application instance.
+        """
         self.app = app
         self.parent = parent
         self.frame = tk.Frame(self.parent, width =self.parent.winfo_width() - 100, height = self.parent.winfo_height() - 120)
@@ -25,6 +39,9 @@ class DrawFrame():
         self.wires =[]
 
     def draw(self):
+        """
+        Draws the harness components on the screen.
+        """
         self.screen.fill(pygame.Color(100, 100, 100))
         for i in range(self.frame.winfo_width()):
             pygame.draw.line(self.screen,(155,155,155),(i * 25,0),(i * 25,self.screen.get_height()),1)
@@ -58,8 +75,14 @@ class DrawFrame():
 
 
     def update(self):
+        """
+        Updates the display and the harness components.
+        """
         pygame.display.update()
         for c in self.connectors:
             c.update()
     def resize(self):
-       self.frame.config(width =self.parent.winfo_width() - 25, height = self.parent.winfo_height() - 25 )
+        """
+        Resizes the drawing frame.
+        """
+        self.frame.config(width =self.parent.winfo_width() - 25, height = self.parent.winfo_height() - 25)

@@ -1,10 +1,24 @@
+"""
+This module defines the property editor panels for connectors and wires.
+"""
+
 import tkinter as tk
 import tkinter.ttk as ttk
 import tktooltip
 import HarnessITUtils
 
 class ConnectorProperies():
+    """
+    A property editor panel for connectors.
+    """
     def __init__(self, parent, app):
+        """
+        Initializes the ConnectorProperies panel.
+
+        Args:
+            parent: The parent widget.
+            app: The main application instance.
+        """
         self.app = app
         self.parent = parent
         self.frame = tk.Frame(self.parent, height=200)
@@ -27,6 +41,12 @@ class ConnectorProperies():
         self.saveButton.grid(column=0,row=10,columnspan=2)
 
     def load(self, component):
+        """
+        Loads the properties of a connector into the panel.
+
+        Args:
+            component (Connector): The connector to load.
+        """
         self.nameTextBox.delete(0,30)
         self.nameTextBox.insert(0,component.get_name())
         self.partNumberTextBox.delete(0,30)
@@ -34,11 +54,24 @@ class ConnectorProperies():
 
 
     def save(self):
+        """
+        Saves the properties of the connector.
+        """
         if len(self.app.HDF.selected) > 0:
             self.app.HDF.selected[0].set_name(self.nameTextBox.get())
             print("saved")
 class WireProperies():
+    """
+    A property editor panel for wires.
+    """
     def __init__(self, parent, app):
+        """
+        Initializes the WireProperies panel.
+
+        Args:
+            parent: The parent widget.
+            app: The main application instance.
+        """
         self.app = app
         self.parent = parent
         self.frame = tk.Frame(self.parent, height=200)
@@ -72,6 +105,12 @@ class WireProperies():
         self.saveButton.grid(column=0,row=10,columnspan=2)
 
     def load(self, component):
+        """
+        Loads the properties of a wire into the panel.
+
+        Args:
+            component (Wire): The wire to load.
+        """
         self.nameTextBox.delete(0,30)
         self.nameTextBox.insert(0,component.get_name())
         #self.partNumberTextBox.delete(0,30)
@@ -81,6 +120,9 @@ class WireProperies():
 
 
     def save(self):
+        """
+        Saves the properties of the wire.
+        """
         if len(self.app.HDF.selected) > 0:
             self.app.HDF.selected[0].set_name(self.nameTextBox.get())
             print("saved")
