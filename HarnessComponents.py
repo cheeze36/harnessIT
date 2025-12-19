@@ -190,9 +190,9 @@ class Connector(pygame.sprite.Sprite):
 
 class Wire():
     """
-    A wire represents a connection between two nodes.
+    A wire represents a connection between two or more nodes.
     """
-    def __init__(self, name="??", partnumber="", color="WHITE", gauge="32", length="0"):
+    def __init__(self, name="??", partnumber="", color="WHITE", gauge="32"):
         """
         Initializes a Wire.
 
@@ -201,26 +201,27 @@ class Wire():
             partnumber (str, optional): The part number of the wire. Defaults to "".
             color (str, optional): The color of the wire. Defaults to "WHITE".
             gauge (str, optional): The gauge of the wire. Defaults to "32".
-            length (str, optional): The length of the wire. Defaults to "0".
         """
-        self.nodeA = None
-        self.nodeB = None
-        self.nodeC = None
-        self.nodeD = None
+        self.nodes = []
+        self.lengths = []
         self.name = name
         self.partnumber = partnumber
         self.color = color
         self.gauge = gauge
-        self.length = length
 
-    def set_nodes(self, a, b, c, d):
+    def add_node(self, node):
         """
-        Sets the nodes that the wire connects.
+        Adds a node to the wire.
         """
-        self.nodeA = a
-        self.nodeB = b
-        self.nodeC = c
-        self.nodeD = d
+        self.nodes.append(node)
+        if len(self.nodes) > 1:
+            self.lengths.append(0)
+
+    def get_total_length(self):
+        """
+        Returns the total length of the wire.
+        """
+        return sum(self.lengths)
 
     def set_color(self, astr):
         """
@@ -262,18 +263,27 @@ class Wire():
         """
         Returns a dictionary representation of the wire.
         """
+        node_data = []
+        for node in self.nodes:
+            if isinstance(node.parent, Connector):
+                node_data.append({
+                    "type": "connector",
+                    "parent_idx": connectors.index(node.parent),
+                    "pin": node.pinnum,
+                })
+            else:
+                node_data.append({
+                    "type": "intermediate",
+                    "pos": node.rect.center,
+                })
+
         return {
             "name": self.name,
             "partnumber": self.partnumber,
             "color": self.color,
             "gauge": self.gauge,
-            "length": self.length,
-            "nodeA_parent_idx": connectors.index(self.nodeA.parent),
-            "nodeA_pin": self.nodeA.pinnum,
-            "nodeB_pos": self.nodeB.rect.center,
-            "nodeC_pos": self.nodeC.rect.center,
-            "nodeD_parent_idx": connectors.index(self.nodeD.parent),
-            "nodeD_pin": self.nodeD.pinnum,
+            "nodes": node_data,
+            "lengths": self.lengths,
         }
 
     @classmethod
@@ -286,17 +296,16 @@ class Wire():
             partnumber=data["partnumber"],
             color=data["color"],
             gauge=data["gauge"],
-            length=data["length"],
         )
+        wire.lengths = data["lengths"]
 
-        nodeA_parent = connectors[data["nodeA_parent_idx"]]
-        nodeD_parent = connectors[data["nodeD_parent_idx"]]
-
-        if nodeA_parent and nodeD_parent:
-            nodeA = nodeA_parent.nodes[data["nodeA_pin"]]
-            nodeD = nodeD_parent.nodes[data["nodeD_pin"]]
-            nodeB = Node(data["nodeB_pos"], wire, 0, 0)
-            nodeC = Node(data["nodeC_pos"], wire, 0, 0)
-            wire.set_nodes(nodeA, nodeB, nodeC, nodeD)
+        for node_data in data["nodes"]:
+            if node_data["type"] == "connector":
+                parent = connectors[node_data["parent_idx"]]
+                node = parent.nodes[node_data["pin"]]
+                wire.add_node(node)
+            else:
+                node = Node(node_data["pos"], wire, 0, 0)
+                wire.add_node(node)
 
         return wire

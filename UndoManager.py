@@ -181,3 +181,74 @@ class FlipAction:
         Redoes the flip action.
         """
         self.obj.flip()
+
+class CopyAction:
+    """
+    An action that represents copying an object.
+    """
+    def __init__(self, app):
+        """
+        Initializes a CopyAction.
+
+        Args:
+            app: The main application instance.
+        """
+        self.app = app
+        self.clipboard_data = None
+
+    def execute(self):
+        """
+        Executes the copy action.
+        """
+        self.clipboard_data = self.app.copy_selection()
+
+    def undo(self):
+        """
+        Copy actions don't have an undo.
+        """
+        pass
+
+    def redo(self):
+        """
+        Copy actions don't have a redo.
+        """
+        pass
+
+class PasteAction:
+    """
+    An action that represents pasting an object.
+    """
+    def __init__(self, app, pasted_objects):
+        """
+        Initializes a PasteAction.
+
+        Args:
+            app: The main application instance.
+            pasted_objects: The objects that were pasted.
+        """
+        self.app = app
+        self.pasted_objects = pasted_objects
+
+    def undo(self):
+        """
+        Undoes the paste action.
+        """
+        for obj in self.pasted_objects:
+            if isinstance(obj, self.app.HarnessComponents.Connector):
+                if obj in self.app.HDF.connectors:
+                    self.app.HDF.connectors.remove(obj)
+            elif isinstance(obj, self.app.HarnessComponents.Wire):
+                if obj in self.app.HDF.wires:
+                    self.app.HDF.wires.remove(obj)
+
+    def redo(self):
+        """
+        Redoes the paste action.
+        """
+        for obj in self.pasted_objects:
+            if isinstance(obj, self.app.HarnessComponents.Connector):
+                if obj not in self.app.HDF.connectors:
+                    self.app.HDF.connectors.append(obj)
+            elif isinstance(obj, self.app.HarnessComponents.Wire):
+                if obj not in self.app.HDF.wires:
+                    self.app.HDF.wires.append(obj)

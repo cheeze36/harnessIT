@@ -16,7 +16,7 @@ import HarnessComponents
 import HarnessConnectorLibrary
 import csv
 import json
-from UndoManager import UndoManager, MoveAction, CreateAction, DeleteAction, FlipAction
+from UndoManager import UndoManager, MoveAction, CreateAction, DeleteAction, FlipAction, CopyAction, PasteAction
 
 
 class HarnessITWindow():
@@ -39,6 +39,11 @@ class HarnessITWindow():
         self.state = "selecting"
         self.undo_manager = UndoManager()
         self.HarnessComponents = HarnessComponents
+        self.clipboard = None
+
+        self.grid_visible = tk.BooleanVar(value=True)
+        self.grid_snap = tk.BooleanVar(value=True)
+        self.grid_size = 25
 
         with open('resources/library/Connectors.csv', 'r') as file:
             csv_reader = csv.DictReader(file)
@@ -56,7 +61,15 @@ class HarnessITWindow():
         self.editmenu = tk.Menu(self.menubar, tearoff=0)
         self.editmenu.add_command(label="Undo", command=self.undo, accelerator="Ctrl+Z")
         self.editmenu.add_command(label="Redo", command=self.redo, accelerator="Ctrl+Shift+Z")
+        self.editmenu.add_separator()
+        self.editmenu.add_command(label="Copy", command=self.copy, accelerator="Ctrl+C")
+        self.editmenu.add_command(label="Paste", command=self.paste, accelerator="Ctrl+V")
         self.menubar.add_cascade(label="Edit", menu=self.editmenu)
+
+        self.gridmenu = tk.Menu(self.menubar, tearoff=0)
+        self.gridmenu.add_checkbutton(label="Show Grid", onvalue=True, offvalue=False, variable=self.grid_visible)
+        self.gridmenu.add_checkbutton(label="Snap to Grid", onvalue=True, offvalue=False, variable=self.grid_snap)
+        self.menubar.add_cascade(label="Grid", menu=self.gridmenu)
 
         self.root.config(menu = self.menubar)
 
@@ -113,12 +126,15 @@ class HarnessITWindow():
         self.HDF.frame.bind("<B1-Motion>", self._on_drag)
         self.HDF.frame.bind("<ButtonRelease-1>", self._on_left_release)
         self.HDF.frame.bind("<Button-3>", self._on_right_click)
+        self.HDF.frame.bind("<Control-MouseWheel>", self.HDF.zoom)
+
 
         # Keyboard shortcuts (single keys)
         self.root.bind_all("<Escape>", self._cancel_mode)
         self.root.bind_all("<Delete>", self._delete_selection)
-        self.root.bind_all("<BackSpace>", self._delete_selection)
+        #self.root.bind_all("<BackSpace>", self._delete_selection)
 
+        self.root.bind_all("<Control-a>", self.select_all)
         self.root.bind_all("a", self.add_mode)
         self.root.bind_all("w", self.wire_mode)
         self.root.bind_all("s", self.select_mode)
@@ -130,6 +146,8 @@ class HarnessITWindow():
         self.root.bind_all("<Control-Shift-Z>", self.redo)
         self.root.bind_all("<Control-s>", self.save_harness)
         self.root.bind_all("<Control-o>", self.open_harness)
+        self.root.bind_all("<Control-c>", self.copy)
+        self.root.bind_all("<Control-v>", self.paste)
 
 
     def _set_status(self, text):
@@ -195,12 +213,17 @@ class HarnessITWindow():
         Args:
             node (Node): The wire node to select.
         """
+        from HarnessComponents import Connector
+        if isinstance(node.parent, Connector):
+            self._select_connector(node.parent)
+            return
+
         self.properties.frame.grid_forget()
         self.properties = self.WirePropFrame
         self.properties.frame.grid(column=0, row=0)
         self.HDF.selected.clear()
         self.HDF.selected.append(node)
-        self.properties.load(node)
+        self.properties.load(node.parent)
 
     def _hit_test(self, x, y):
         """
@@ -213,25 +236,26 @@ class HarnessITWindow():
         Returns:
             tuple: A tuple containing the type of object and the object itself, or (None, None) if no object is hit.
         """
+        world_x, world_y = self.HDF.screen_to_world(x, y)
+
         # Check selected first for moving
         if self.state == "moving":
             for obj in self.HDF.selected:
-                if obj.rect.collidepoint(x, y):
+                if obj.rect.collidepoint(world_x, world_y):
                     return ("selected", obj)
 
         for obj in reversed(self.HDF.connectors):
-            if obj.rect.collidepoint(x, y):
+            if obj.rect.collidepoint(world_x, world_y):
                 return ("connector", obj)
 
         for w in self.HDF.wires:
-            if w.nodeB and w.nodeB.rect.collidepoint(x, y):
-                return ("wire_node", w.nodeB)
-            if w.nodeC and w.nodeC.rect.collidepoint(x, y):
-                return ("wire_node", w.nodeC)
+            for node in w.nodes:
+                if node.rect.collidepoint(world_x, world_y):
+                    return ("wire_node", node)
 
         for obj in self.HDF.connectors:
             for n in obj.nodes:
-                if n.rect.collidepoint(x, y):
+                if n.rect.collidepoint(world_x, world_y):
                     return ("pin_node", n)
 
         return (None, None)
@@ -241,9 +265,13 @@ class HarnessITWindow():
         Handles left-click events on the drawing canvas.
         """
         x, y = event.x, event.y
+        world_x, world_y = self.HDF.screen_to_world(x, y)
+
+        if self.grid_snap.get():
+            world_x, world_y = self.HDF.snap_to_grid(world_x, world_y)
 
         if self.state == "adding":
-            self.add_connector(event)
+            self.add_connector(world_x, world_y)
             return
 
         if self.state == "wire":
@@ -255,7 +283,7 @@ class HarnessITWindow():
         if self.state == "moving":
             if kind == "selected":
                 self._dragging = True
-                self._drag_offset = (obj.rect.centerx - x, obj.rect.centery - y)
+                self._drag_offset = (obj.rect.centerx - world_x, obj.rect.centery - world_y)
                 self._drag_action_data = (obj, obj.rect.center)
             return
 
@@ -263,13 +291,13 @@ class HarnessITWindow():
             if obj not in self.HDF.selected:
                 self._select_connector(obj)
             self._dragging = True
-            self._drag_offset = (obj.rect.centerx - x, obj.rect.centery - y)
+            self._drag_offset = (obj.rect.centerx - world_x, obj.rect.centery - world_y)
             self._drag_action_data = (obj, obj.rect.center)
         elif kind == "wire_node":
             if obj not in self.HDF.selected:
                 self._select_wire_node(obj)
             self._dragging = True
-            self._drag_offset = (obj.rect.centerx - x, obj.rect.centery - y)
+            self._drag_offset = (obj.rect.centerx - world_x, obj.rect.centery - world_y)
             self._drag_action_data = (obj, obj.rect.center)
         elif kind == "pin_node" and self.state == "wire":
              self.add_wire(event)
@@ -294,8 +322,16 @@ class HarnessITWindow():
         if not hasattr(sel, 'rect'):
             return
 
+        world_x, world_y = self.HDF.screen_to_world(event.x, event.y)
         dx, dy = self._drag_offset
-        sel.rect.center = (event.x + dx, event.y + dy)
+        
+        new_x = world_x + dx
+        new_y = world_y + dy
+
+        if self.grid_snap.get():
+            new_x, new_y = self.HDF.snap_to_grid(new_x, new_y)
+
+        sel.rect.center = (new_x, new_y)
 
     def _on_left_release(self, event):
         """
@@ -347,11 +383,11 @@ class HarnessITWindow():
         else:
             self.openLibrary(callback=self.add_mode)
 
-    def add_connector(self,event):
+    def add_connector(self, x, y):
         """
         Adds a new connector to the canvas.
         """
-        connector = HarnessComponents.Connector(self.curConAdd["ImageLocation"],(event.x,event.y),connections=self.curConAdd["Positions"])
+        connector = HarnessComponents.Connector(self.curConAdd["ImageLocation"],(x,y),connections=self.curConAdd["Positions"])
         self.HDF.connectors.append(connector)
         action = CreateAction(self, connector)
         self.undo_manager.register(action)
@@ -392,6 +428,15 @@ class HarnessITWindow():
         """
         self._set_mode("selecting")
 
+    def select_all(self, *args):
+        """
+        Selects all connectors and wires in the harness.
+        """
+        self.HDF.selected.clear()
+        self.HDF.selected.extend(self.HDF.connectors)
+        # Optionally add wires if you want them selected too
+        # self.HDF.selected.extend(self.HDF.wires)
+
     def generate_cutlist(self,*args):
         """
         Generates and displays the cut list for the current harness.
@@ -403,7 +448,7 @@ class HarnessITWindow():
 
         row = 1
         for w in self.HDF.wires:
-            left = w.nodeA.get_name()
+            left = w.nodes[0].get_name()
             leftentry = tk.Entry(self.CutListEditTab, width=20)
             leftentry.insert(0,left)
             leftentry.grid(row = row,column=0)
@@ -411,10 +456,14 @@ class HarnessITWindow():
             nameentry = tk.Entry(self.CutListEditTab, width=20)
             nameentry.insert(0, wirename)
             nameentry.grid(row=row, column=1)
-            right = w.nodeD.get_name()
+            length = w.get_total_length()
+            length_entry = tk.Entry(self.CutListEditTab, width=10)
+            length_entry.insert(0, str(length))
+            length_entry.grid(row=row, column=2)
+            right = w.nodes[-1].get_name()
             rightentry = tk.Entry(self.CutListEditTab, width=20)
             rightentry.insert(0, right)
-            rightentry.grid(row=row, column=2)
+            rightentry.grid(row=row, column=3)
             row +=1
 
     def wire_mode(self,*args):
@@ -435,15 +484,25 @@ class HarnessITWindow():
                 self.wirenodes.append(obj)
                 if len(self.wirenodes) == 2:
                     w = HarnessComponents.Wire()
-                    hp = ((self.wirenodes[0].rect.centerx + self.wirenodes[1].rect.centerx)/ 2,
-                            (self.wirenodes[0].rect.centery + self.wirenodes[1].rect.centery)/ 2)
-                    bpos = ((self.wirenodes[0].rect.centerx + hp[0])/ 2,
-                            (self.wirenodes[0].rect.centery + hp[1])/2)
-                    b = HarnessComponents.Node(bpos,w,2,0)
-                    cpos = ((hp[0] + self.wirenodes[1].rect.centerx) / 2,
-                            (hp[1] + self.wirenodes[1].rect.centery) / 2)
-                    c = HarnessComponents.Node(cpos, w, 2, 0)
-                    w.set_nodes(self.wirenodes[0],b,c,self.wirenodes[1])
+                    w.add_node(self.wirenodes[0])
+                    
+                    # Add two intermediate nodes
+                    start_pos = self.wirenodes[0].rect.center
+                    end_pos = self.wirenodes[1].rect.center
+                    
+                    x_dist = (end_pos[0] - start_pos[0]) / 3
+                    y_dist = (end_pos[1] - start_pos[1]) / 3
+
+                    pos1 = (start_pos[0] + x_dist, start_pos[1] + y_dist)
+                    pos2 = (start_pos[0] + 2 * x_dist, start_pos[1] + 2 * y_dist)
+
+                    node1 = HarnessComponents.Node(pos1, w, 0, 0)
+                    node2 = HarnessComponents.Node(pos2, w, 0, 0)
+
+                    w.add_node(node1)
+                    w.add_node(node2)
+                    w.add_node(self.wirenodes[1])
+
                     self.HDF.wires.append(w)
                     action = CreateAction(self, w)
                     self.undo_manager.register(action)
@@ -483,6 +542,78 @@ class HarnessITWindow():
         Redoes the last undone action.
         """
         self.undo_manager.redo()
+
+    def copy(self, event=None):
+        """
+        Copies the selected objects to the clipboard.
+        """
+        if not self.HDF.selected:
+            return
+        
+        action = CopyAction(self)
+        action.execute()
+        self.clipboard = action.clipboard_data
+
+    def paste(self, event=None):
+        """
+        Pastes the objects from the clipboard to the canvas.
+        """
+        if not self.clipboard:
+            return
+
+        pasted_objects = self.paste_selection(self.clipboard)
+        action = PasteAction(self, pasted_objects)
+        self.undo_manager.register(action)
+
+    def copy_selection(self):
+        """
+        Serializes the selected objects to a clipboard-friendly format.
+        """
+        if not self.HDF.selected:
+            return None
+
+        clipboard_data = {
+            "connectors": [],
+            "wires": [],
+        }
+
+        selected_connectors = [obj for obj in self.HDF.selected if isinstance(obj, HarnessComponents.Connector)]
+        
+        for c in selected_connectors:
+            clipboard_data["connectors"].append(c.to_dict())
+
+        selected_wires = []
+        for obj in self.HDF.selected:
+            if isinstance(obj, HarnessComponents.Node) and isinstance(obj.parent, HarnessComponents.Wire):
+                if obj.parent not in selected_wires:
+                    selected_wires.append(obj.parent)
+        
+        for w in selected_wires:
+            clipboard_data["wires"].append(w.to_dict(self.HDF.connectors))
+
+        return clipboard_data
+
+    def paste_selection(self, clipboard_data):
+        """
+        Pastes the objects from the clipboard to the canvas.
+        """
+        pasted_objects = []
+        new_connectors = []
+        
+        for c_data in clipboard_data["connectors"]:
+            c_data["pos"] = (c_data["pos"][0] + 20, c_data["pos"][1] + 20)
+            connector = HarnessComponents.Connector.from_dict(c_data)
+            self.HDF.connectors.append(connector)
+            new_connectors.append(connector)
+            pasted_objects.append(connector)
+
+        for w_data in clipboard_data["wires"]:
+            wire = HarnessComponents.Wire.from_dict(w_data, self.HDF.connectors)
+            self.HDF.wires.append(wire)
+            pasted_objects.append(wire)
+            
+        return pasted_objects
+
 
     def new_harness(self):
         """

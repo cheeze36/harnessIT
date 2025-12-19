@@ -24,6 +24,7 @@ class ConnectorLibrary():
         self.parent = parent
         self.window = tk.Toplevel(self.parent)
         self.window.geometry("600x300")
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
         self.Datatable = {}
         self.scrollbar = tk.Scrollbar(self.window, orient="vertical")
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)  # grid(column=1,row = 0)
@@ -34,6 +35,12 @@ class ConnectorLibrary():
         self.top = 0
         self.callback = callback
 
+    def on_close(self):
+        """
+        Handles the closing of the library window.
+        """
+        self.app.libwin = None
+        self.window.destroy()
 
     def printargs(self,*args):
         """
