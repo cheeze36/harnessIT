@@ -17,6 +17,7 @@ import HarnessConnectorLibrary
 import csv
 import json
 from UndoManager import UndoManager, MoveAction, CreateAction, DeleteAction, FlipAction, CopyAction, PasteAction
+from ContextMenuManager import ContextMenuManager
 
 
 class HarnessITWindow():
@@ -40,6 +41,7 @@ class HarnessITWindow():
         self.undo_manager = UndoManager()
         self.HarnessComponents = HarnessComponents
         self.clipboard = None
+        self.context_menu_manager = ContextMenuManager(self)
 
         self.grid_visible = tk.BooleanVar(value=True)
         self.grid_snap = tk.BooleanVar(value=True)
@@ -70,6 +72,12 @@ class HarnessITWindow():
         self.gridmenu.add_checkbutton(label="Show Grid", onvalue=True, offvalue=False, variable=self.grid_visible)
         self.gridmenu.add_checkbutton(label="Snap to Grid", onvalue=True, offvalue=False, variable=self.grid_snap)
         self.menubar.add_cascade(label="Grid", menu=self.gridmenu)
+
+        self.windowmenu = tk.Menu(self.menubar, tearoff=0)
+        self.windowmenu.add_command(label="Connector Library", command=self.openLibrary)
+        self.windowmenu.add_command(label="Cut List", command=self.generate_cutlist)
+        self.menubar.add_cascade(label="Window", menu=self.windowmenu)
+
 
         self.root.config(menu = self.menubar)
 
@@ -264,6 +272,7 @@ class HarnessITWindow():
         """
         Handles left-click events on the drawing canvas.
         """
+        self.context_menu_manager.hide_menu()
         x, y = event.x, event.y
         world_x, world_y = self.HDF.screen_to_world(x, y)
 
@@ -351,7 +360,8 @@ class HarnessITWindow():
         """
         Handles right-click events on the drawing canvas.
         """
-        self._cancel_mode()
+        kind, obj = self._hit_test(event.x, event.y)
+        self.context_menu_manager.show_menu(event, kind, obj)
 
     def _delete_selection(self, event=None):
         """
@@ -361,18 +371,64 @@ class HarnessITWindow():
             return
 
         sel = self.HDF.selected[0]
-        action = DeleteAction(self, sel)
+        self.delete_object(sel)
+
+    def delete_object(self, obj):
+        """
+        Deletes a specific object.
+        """
+        action = DeleteAction(self, obj)
         self.undo_manager.register(action)
         
-        if isinstance(sel, HarnessComponents.Connector):
-            if sel in self.HDF.connectors:
-                self.HDF.connectors.remove(sel)
-        elif isinstance(sel, HarnessComponents.Node):
-            parent = getattr(sel, "parent", None)
+        if isinstance(obj, HarnessComponents.Connector):
+            if obj in self.HDF.connectors:
+                self.HDF.connectors.remove(obj)
+        elif isinstance(obj, HarnessComponents.Wire):
+            if obj in self.HDF.wires:
+                self.HDF.wires.remove(obj)
+        elif isinstance(obj, HarnessComponents.Node):
+            parent = getattr(obj, "parent", None)
             if parent and parent in self.HDF.wires:
                 self.HDF.wires.remove(parent)
 
-        self.HDF.selected.clear()
+        if obj in self.HDF.selected:
+            self.HDF.selected.remove(obj)
+
+    def flip_object(self, obj):
+        """
+        Flips a specific connector.
+        """
+        if isinstance(obj, HarnessComponents.Connector):
+            obj.flip()
+            action = FlipAction(obj)
+            self.undo_manager.register(action)
+
+    def add_node_to_wire(self, wire, x, y):
+        """
+        Adds a new node to a wire at the given position.
+        """
+        world_x, world_y = self.HDF.screen_to_world(x, y)
+        if self.grid_snap.get():
+            world_x, world_y = self.HDF.snap_to_grid(world_x, world_y)
+
+        # Find the closest segment to the click
+        min_dist = float('inf')
+        insert_index = -1
+        for i in range(len(wire.nodes) - 1):
+            p1 = pygame.math.Vector2(wire.nodes[i].rect.center)
+            p2 = pygame.math.Vector2(wire.nodes[i+1].rect.center)
+            p3 = pygame.math.Vector2(world_x, world_y)
+            dist = p3.distance_to(p1) + p3.distance_to(p2)
+            if dist < min_dist:
+                min_dist = dist
+                insert_index = i + 1
+        
+        if insert_index != -1:
+            node = HarnessComponents.Node((world_x, world_y), wire, 0, 0)
+            wire.nodes.insert(insert_index, node)
+            wire.lengths.insert(insert_index - 1, 0)
+            self.properties.load(wire)
+
 
     def add_mode(self, *args):
         """
@@ -521,9 +577,7 @@ class HarnessITWindow():
         """
         if len(self.HDF.selected) > 0:
             sel = self.HDF.selected[0]
-            sel.flip()
-            action = FlipAction(sel)
-            self.undo_manager.register(action)
+            self.flip_object(sel)
 
     def resize(self,*args):
         """
