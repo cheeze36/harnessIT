@@ -1,10 +1,10 @@
 # HarnessIT
 
-HarnessIT is a lightweight and intuitive harness editor designed for creating and managing wiring harness diagrams. This tool was developed to provide an accessible and affordable solution for harness design, offering a user-friendly interface with essential features for professionals and hobbyists alike.
+HarnessIT is a lightweight harness editor designed for creating and managing wiring harness diagrams.
 
 ## Features
 
-- **Visual Harness Editing:** Create and manipulate harness diagrams with an easy-to-use graphical interface.
+- **Visual Harness Editing:** Create and manipulate harness diagrams with a graphical interface.
 - **Component Library:** A library of connectors that can be extended by the user.
 - **Wire and Connector Properties:** Edit properties of wires and connectors, such as name, part number, color, and gauge.
 - **Cut Sheet Generation:** Automatically generate a cut sheet for the created harness.
