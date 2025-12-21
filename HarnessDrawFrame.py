@@ -124,6 +124,16 @@ class DrawFrame():
                 text_rect = text.get_rect(center=self.world_to_screen(c.rect.centerx, c.rect.centery - 20))
                 self.screen.blit(text, text_rect)
 
+            if self.app.state == "wire":
+                for n in c.nodes:
+                    screen_pos = self.world_to_screen(n.rect.centerx, n.rect.centery)
+                    if n in self.app.wirenodes:
+                        pygame.draw.circle(self.screen, (255, 255, 255), screen_pos, 7)
+                        pygame.draw.circle(self.screen, (100, 155, 55), screen_pos, 5)
+                    else:
+                        pygame.draw.circle(self.screen, (255, 255, 255), screen_pos, 7)
+                        pygame.draw.circle(self.screen,(0,155,255), screen_pos,5)
+
             if self.app.view_pin_numbers.get():
                 for n in c.nodes:
                     screen_pos = self.world_to_screen(n.rect.centerx, n.rect.centery)
