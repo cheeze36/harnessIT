@@ -1,6 +1,7 @@
 # HarnessIT
 
 HarnessIT is a lightweight harness editor designed for creating and managing wiring harness diagrams.
+<img width="500" height="430" alt="Screenshot 2025-12-21 143614" src="https://github.com/user-attachments/assets/893ab607-06dd-4b68-95ea-f4d470635bc3" />
 
 ## Features
 
