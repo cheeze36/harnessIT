@@ -25,6 +25,14 @@ class Node(pygame.sprite.Sprite):
         self.pinnum = pinnum
         self.offset = offset
 
+    def get_display_pin(self):
+        """
+        Gets the display pin number, accounting for flipped connectors.
+        """
+        if isinstance(self.parent, Connector) and self.parent.direction == "left":
+            return self.parent.connections - self.pinnum
+        return self.pinnum + 1
+
     def set_color(self, astr):
         """
         Sets the color of the parent wire.
@@ -114,15 +122,26 @@ class Connector(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image, 1, 0)
         self.load_nodes()
 
-    def flip(self):
+    def flip(self, app):
         """
-        Flips the connector horizontally.
+        Flips the connector horizontally and updates wire connections.
         """
         self.image = pygame.transform.flip(self.image, 1, 0)
         if self.direction == "left":
             self.direction = "right"
         else:
             self.direction = "left"
+        
+        old_nodes = self.nodes[:]
+        self.load_nodes()
+
+        for wire in app.HDF.wires:
+            for i, node in enumerate(wire.nodes):
+                if node in old_nodes:
+                    pin_index = old_nodes.index(node)
+                    new_pin_index = self.connections - 1 - pin_index
+                    wire.nodes[i] = self.nodes[new_pin_index]
+
 
     def load_nodes(self):
         """

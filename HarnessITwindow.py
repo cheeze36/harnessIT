@@ -46,6 +46,10 @@ class HarnessITWindow():
         self.grid_visible = tk.BooleanVar(value=True)
         self.grid_snap = tk.BooleanVar(value=True)
         self.grid_size = 25
+        self.view_wire_names = tk.BooleanVar(value=False)
+        self.view_connector_names = tk.BooleanVar(value=False)
+        self.view_pin_numbers = tk.BooleanVar(value=True)
+
 
         with open('resources/library/Connectors.csv', 'r') as file:
             csv_reader = csv.DictReader(file)
@@ -58,6 +62,8 @@ class HarnessITWindow():
         self.filemenu.add_command(label="New", command=self.new_harness)
         self.filemenu.add_command(label="Open", command=self.open_harness, accelerator="Ctrl+O")
         self.filemenu.add_command(label="Save", command=self.save_harness, accelerator="Ctrl+S")
+        self.filemenu.add_separator()
+        self.filemenu.add_command(label="Export Cut Sheet...", command=self.export_cut_sheet)
         self.menubar.add_cascade(label="File", menu=self.filemenu)
 
         self.editmenu = tk.Menu(self.menubar, tearoff=0)
@@ -68,10 +74,14 @@ class HarnessITWindow():
         self.editmenu.add_command(label="Paste", command=self.paste, accelerator="Ctrl+V")
         self.menubar.add_cascade(label="Edit", menu=self.editmenu)
 
-        self.gridmenu = tk.Menu(self.menubar, tearoff=0)
-        self.gridmenu.add_checkbutton(label="Show Grid", onvalue=True, offvalue=False, variable=self.grid_visible)
-        self.gridmenu.add_checkbutton(label="Snap to Grid", onvalue=True, offvalue=False, variable=self.grid_snap)
-        self.menubar.add_cascade(label="Grid", menu=self.gridmenu)
+        self.viewmenu = tk.Menu(self.menubar, tearoff=0)
+        self.viewmenu.add_checkbutton(label="Show Grid", onvalue=True, offvalue=False, variable=self.grid_visible)
+        self.viewmenu.add_checkbutton(label="Snap to Grid", onvalue=True, offvalue=False, variable=self.grid_snap)
+        self.viewmenu.add_separator()
+        self.viewmenu.add_checkbutton(label="Show Wire Names", onvalue=True, offvalue=False, variable=self.view_wire_names)
+        self.viewmenu.add_checkbutton(label="Show Connector Names", onvalue=True, offvalue=False, variable=self.view_connector_names)
+        self.viewmenu.add_checkbutton(label="Show Pin Numbers", onvalue=True, offvalue=False, variable=self.view_pin_numbers)
+        self.menubar.add_cascade(label="View", menu=self.viewmenu)
 
         self.windowmenu = tk.Menu(self.menubar, tearoff=0)
         self.windowmenu.add_command(label="Connector Library", command=self.openLibrary)
@@ -399,8 +409,8 @@ class HarnessITWindow():
         Flips a specific connector.
         """
         if isinstance(obj, HarnessComponents.Connector):
-            obj.flip()
-            action = FlipAction(obj)
+            obj.flip(self)
+            action = FlipAction(self, obj)
             self.undo_manager.register(action)
 
     def add_node_to_wire(self, wire, x, y):
@@ -502,24 +512,26 @@ class HarnessITWindow():
         for i in self.CutListEditTab.winfo_children():
             i.destroy()
 
+        headers = ["From Connector", "From Pin", "Wire Name", "Length", "Color", "To Pin", "To Connector"]
+        for col, header in enumerate(headers):
+            ttk.Label(self.CutListEditTab, text=header, font=('Helvetica', 10, 'bold')).grid(row=0, column=col, padx=5, pady=5)
+
         row = 1
         for w in self.HDF.wires:
-            left = w.nodes[0].get_name()
-            leftentry = tk.Entry(self.CutListEditTab, width=20)
-            leftentry.insert(0,left)
-            leftentry.grid(row = row,column=0)
-            wirename = w.name
-            nameentry = tk.Entry(self.CutListEditTab, width=20)
-            nameentry.insert(0, wirename)
-            nameentry.grid(row=row, column=1)
-            length = w.get_total_length()
-            length_entry = tk.Entry(self.CutListEditTab, width=10)
-            length_entry.insert(0, str(length))
-            length_entry.grid(row=row, column=2)
-            right = w.nodes[-1].get_name()
-            rightentry = tk.Entry(self.CutListEditTab, width=20)
-            rightentry.insert(0, right)
-            rightentry.grid(row=row, column=3)
+            from_connector = w.nodes[0].get_name()
+            from_pin = w.nodes[0].get_display_pin()
+            to_connector = w.nodes[-1].get_name()
+            to_pin = w.nodes[-1].get_display_pin()
+
+            ttk.Label(self.CutListEditTab, text=from_connector).grid(row=row, column=0)
+            ttk.Label(self.CutListEditTab, text=from_pin).grid(row=row, column=1)
+            ttk.Label(self.CutListEditTab, text=w.name).grid(row=row, column=2)
+            ttk.Label(self.CutListEditTab, text=w.get_total_length()).grid(row=row, column=3)
+            ttk.Label(self.CutListEditTab, text=w.get_color()).grid(row=row, column=4)
+            ttk.Label(self.CutListEditTab, text=to_pin).grid(row=row, column=5)
+            ttk.Label(self.CutListEditTab, text=to_connector).grid(row=row, column=6)
+
+
             row +=1
 
     def wire_mode(self,*args):
@@ -718,6 +730,30 @@ class HarnessITWindow():
         for w_data in harness_data["wires"]:
             wire = HarnessComponents.Wire.from_dict(w_data, self.HDF.connectors)
             self.HDF.wires.append(wire)
+
+    def export_cut_sheet(self, event=None):
+        """
+        Exports the cut sheet to a CSV file.
+        """
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        if not filepath:
+            return
+
+        with open(filepath, "w", newline="") as f:
+            writer = csv.writer(f)
+            headers = ["From Connector", "From Pin", "Wire Name", "Length", "Color", "To Pin", "To Connector"]
+            writer.writerow(headers)
+
+            for w in self.HDF.wires:
+                from_connector = w.nodes[0].get_name()
+                from_pin = w.nodes[0].get_display_pin()
+                to_connector = w.nodes[-1].get_name()
+                to_pin = w.nodes[-1].get_display_pin()
+                writer.writerow([from_connector, from_pin, w.name, w.get_total_length(), w.get_color(), to_pin, to_connector])
+
 
     def Run(self):
         """

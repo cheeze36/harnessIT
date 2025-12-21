@@ -161,26 +161,28 @@ class FlipAction:
     """
     An action that represents flipping an object.
     """
-    def __init__(self, obj):
+    def __init__(self, app, obj):
         """
         Initializes a FlipAction.
 
         Args:
+            app: The main application instance.
             obj: The object that was flipped.
         """
+        self.app = app
         self.obj = obj
 
     def undo(self):
         """
         Undoes the flip action.
         """
-        self.obj.flip()
+        self.obj.flip(self.app)
 
     def redo(self):
         """
         Redoes the flip action.
         """
-        self.obj.flip()
+        self.obj.flip(self.app)
 
 class CopyAction:
     """

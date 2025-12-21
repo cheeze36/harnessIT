@@ -32,6 +32,9 @@ class DrawFrame():
         self.screen = pygame.display.set_mode()
 
         pygame.display.init()
+        pygame.font.init()
+        self.font = pygame.font.SysFont(None, 24)
+
 
         self.selected = []
 
@@ -116,15 +119,18 @@ class DrawFrame():
             scaled_image = pygame.transform.scale(c.image, (int(c.rect.width * self.zoom_level), int(c.rect.height * self.zoom_level)))
             self.screen.blit(scaled_image, screen_pos)
 
-            if self.app.state == "wire":
+            if self.app.view_connector_names.get():
+                text = self.font.render(c.name, True, (0, 0, 0))
+                text_rect = text.get_rect(center=self.world_to_screen(c.rect.centerx, c.rect.centery - 20))
+                self.screen.blit(text, text_rect)
+
+            if self.app.view_pin_numbers.get():
                 for n in c.nodes:
                     screen_pos = self.world_to_screen(n.rect.centerx, n.rect.centery)
-                    if n in self.app.wirenodes:
-                        pygame.draw.circle(self.screen, (255, 255, 255), screen_pos, 7)
-                        pygame.draw.circle(self.screen, (100, 155, 55), screen_pos, 5)
-                    else:
-                        pygame.draw.circle(self.screen, (255, 255, 255), screen_pos, 7)
-                        pygame.draw.circle(self.screen,(0,155,255), screen_pos,5)
+                    pin_text = self.font.render(str(n.get_display_pin()), True, (0, 0, 0))
+                    text_rect = pin_text.get_rect(center=screen_pos)
+                    self.screen.blit(pin_text, text_rect)
+
         for w in self.wires:
             color = HarnessITUtils.COLORS[w.get_color()]
             gauge = HarnessITUtils.GAUGE[w.get_gauge()]
@@ -134,6 +140,14 @@ class DrawFrame():
                 end_pos = self.world_to_screen(w.nodes[i+1].rect.centerx, w.nodes[i+1].rect.centery)
                 pygame.draw.line(self.screen, color, start_pos, end_pos, gauge)
             
+            if self.app.view_wire_names.get():
+                midpoint_x = (w.nodes[0].rect.centerx + w.nodes[-1].rect.centerx) / 2
+                midpoint_y = (w.nodes[0].rect.centery + w.nodes[-1].rect.centery) / 2
+                screen_pos = self.world_to_screen(midpoint_x, midpoint_y)
+                text = self.font.render(w.name, True, (0, 0, 0))
+                text_rect = text.get_rect(center=screen_pos)
+                self.screen.blit(text, text_rect)
+
             if self.app.state == "wire" or self.app.state == "selecting":
                 for node in w.nodes:
                     if not isinstance(node.parent, HarnessComponents.Connector):
