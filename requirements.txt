@@ -1,0 +1,2 @@
+pygame>=2.5.2
+tktooltip>=1.2.0
