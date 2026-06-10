@@ -27,22 +27,38 @@ class DrawFrame():
         self.parent = parent
         self.frame = tk.Frame(self.parent, width =self.parent.winfo_width() - 100, height = self.parent.winfo_height() - 120)
 
-        os.environ['SDL_WINDOWID'] = str(self.frame.winfo_id())
-        os.environ['SDL_VIDEODRIVER'] = 'windib'
-        self.screen = pygame.display.set_mode()
-
-        pygame.display.init()
-        pygame.font.init()
-        self.font = pygame.font.SysFont(None, 24)
-
-
         self.selected = []
-
         self.connectors = []
-        self.wires =[]
-
+        self.wires = []
         self.zoom_level = 1.0
         self.view_offset = [0, 0]
+
+        self.screen = None
+        self.font = None
+        self._resize_job = None
+
+    def init_pygame(self):
+        """Initialize pygame after the frame has been placed in the window."""
+        import sys
+
+        if sys.platform == 'win32':
+            self.frame.update()
+            os.environ['SDL_WINDOWID'] = str(self.frame.winfo_id())
+            os.environ['SDL_VIDEODRIVER'] = 'windib'
+        elif sys.platform.startswith('linux'):
+            # For Linux, we need to ensure the frame is mapped before getting its window ID
+            self.frame.update_idletasks()
+            self.frame.update()
+            os.environ['SDL_WINDOWID'] = str(self.frame.winfo_id())
+            os.environ['SDL_VIDEODRIVER'] = 'x11'
+        else:
+            self.frame.update()
+
+        pygame.display.init()
+        self.screen = pygame.display.set_mode((self.frame.winfo_width(), self.frame.winfo_height()))
+
+        pygame.font.init()
+        self.font = pygame.font.SysFont(None, 24)
 
     def world_to_screen(self, x, y):
         """Converts world coordinates to screen coordinates."""
@@ -174,6 +190,26 @@ class DrawFrame():
             c.update()
     def resize(self):
         """
-        Resizes the drawing frame.
+        Resizes the drawing frame with debouncing to prevent excessive updates.
         """
-        self.frame.config(width =self.parent.winfo_width() - 25, height = self.parent.winfo_height() - 25)
+        # Cancel any pending resize
+        if self._resize_job:
+            self.frame.after_cancel(self._resize_job)
+
+        # Schedule the actual resize after a short delay
+        self._resize_job = self.frame.after(100, self._do_resize)
+
+    def _do_resize(self):
+        """
+        Actually performs the resize operation.
+        """
+        self._resize_job = None
+        self.frame.config(width=self.parent.winfo_width() - 25, height=self.parent.winfo_height() - 25)
+        self.frame.update_idletasks()
+
+        # Resize the pygame surface to match the new frame size
+        if self.screen:
+            new_width = self.frame.winfo_width()
+            new_height = self.frame.winfo_height()
+            if new_width > 0 and new_height > 0:
+                self.screen = pygame.display.set_mode((new_width, new_height))

@@ -99,40 +99,62 @@ class HarnessITWindow():
         self.tabControl.add(self.HarnessEditTab,text = "Harness Edit")
         self.tabControl.add(self.CutListEditTab, text = "Cut list")
 
+        self.tabControl.place(relx=.01,y=40,relheight=.97,relwidth=.99)
+        self.root.update()
+        
+        self.libwin = None
+        self.wirenodes = []
+        self.cutlistdata = {}
+
+        self.ribbon = HarnessITRibbon.Ribbon(self.root,self)
+        self.ribbon.frame.place(x=10,y=10)
+
+        self.status_var = tk.StringVar(value="")
+        self.status = ttk.Label(self.root, textvariable=self.status_var, anchor="w")
+        self.status.place(relx=0.01, rely=0.975, relwidth=0.98)
+
+        # Start the initialization
+        self.init_pygame()
+
+    def init_pygame(self):
         self.HDF = HarnessDrawFrame.DrawFrame(self.HarnessEditTab,self)
         self.sideFrame = tk.Frame(self.HarnessEditTab)
         self.ConnPropFrame = HarnessComponentProperties.ConnectorProperies(self.HarnessEditTab,self)
         self.WirePropFrame = HarnessComponentProperties.WireProperies(self.HarnessEditTab,self)
         self.properties = self.ConnPropFrame
 
-        self.libwin = None
-        self.wirenodes = []
-        self.cutlistdata = {}
-
-
-        self.ribbon = HarnessITRibbon.Ribbon(self.root,self)
-
         self.sideFrame.grid(column=0,row=0)
         self.HDF.frame.grid(column=1,row=0)
         self.ConnPropFrame.frame.grid(column=0,row=0)
-        #self.ribbon.frame.pack(side = tk.TOP)
-        self.ribbon.frame.place(x=10,y=10)
-        self.tabControl.place(relx=.01,y=40,relheight=.97,relwidth=.99)
-        #self.tabControl.pack(expand = 1, fill="both", side = tk.BOTTOM)
 
-        self.status_var = tk.StringVar(value="")
-        self.status = ttk.Label(self.root, textvariable=self.status_var, anchor="w")
-        self.status.place(relx=0.01, rely=0.975, relwidth=0.98)
+        # Initialize pygame after the frame has been placed
+        self.HDF.init_pygame()
 
         self._dragging = False
         self._drag_action_data = None
         self._drag_offset = (0, 0)
 
         self.root.bind('<Configure>', self.resize)
-        
+
         self.running = False
         self._bind_input()
         self._set_mode("selecting")
+
+        # Trigger first draw
+        self.HDF.draw()
+        self.HDF.update()
+
+        self.start_loop()
+
+    def start_loop(self):
+        self.running = True
+        self.loop()
+
+    def loop(self):
+        if self.running:
+            self.HDF.draw()
+            self.HDF.update()
+            self.root.after(16, self.loop)
 
 
     def _bind_input(self):
@@ -759,11 +781,11 @@ class HarnessITWindow():
         """
         Starts the main application loop.
         """
-        self.running = True
-        while self.running:
-            self.HDF.draw()
-            self.HDF.update()
-            self.root.update()
+        self.root.mainloop()
 
-myApp = HarnessITWindow()
-myApp.Run()
+def main():
+    myApp = HarnessITWindow()
+    myApp.Run()
+
+if __name__ == "__main__":
+    main()

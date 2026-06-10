@@ -5,7 +5,7 @@ This module defines the ribbon toolbar for the HarnessIT application.
 import tkinter as tk
 import tkinter.ttk as ttk
 try:
-    import tktooltip
+    import TkToolTip as tktooltip
 except Exception:
     tktooltip = None
 

@@ -4,7 +4,11 @@ This module defines the property editor panels for connectors and wires.
 
 import tkinter as tk
 import tkinter.ttk as ttk
-import tktooltip
+try:
+    #import tktooltip
+    import TkToolTip as tktooltip
+except Exception:
+    tktooltip = None
 import HarnessITUtils
 from HarnessComponents import Node
 
