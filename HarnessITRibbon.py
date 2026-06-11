@@ -40,39 +40,39 @@ class Ribbon():
         self.addConnectorButton = ttk.Button(self.frame, text = "Add Connector", image=self.addConnectorImage,command=self.app.add_mode)
         self.addConnectorButton.pack(side=tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.addConnectorButton, "add connector", 1)
+            tktooltip.ToolTip(self.addConnectorButton, text="add connector")
 
         self.addWireButton = ttk.Button(self.frame, text="Add Wire", image=self.addWireImage, command=self.app.wire_mode)
         self.addWireButton.pack(side=tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.addWireButton, "add wire", 1)
+            tktooltip.ToolTip(self.addWireButton, text="add wire")
 
         self.removeConnectorButton = ttk.Button(self.frame, text="Add Connector", image=self.removeConnectorImage,command=self.app.remove)
         self.removeConnectorButton.pack(side=tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.removeConnectorButton, "remove connector", 1)
+            tktooltip.ToolTip(self.removeConnectorButton, text="remove connector")
 
         self.selectButton = ttk.Button(self.frame, text = "Select", image =self.selectImage,command=self.app.select_mode)
         self.selectButton.pack(side=tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.selectButton, "select", 1)
-        
+            tktooltip.ToolTip(self.selectButton, text="select")
+
         self.moveButton = ttk.Button(self.frame, text="Move", image=self.moveImage, command=self.app.move_mode)
         self.moveButton.pack(side=tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.moveButton, "Move Selected", 1)
+            tktooltip.ToolTip(self.moveButton, text="Move Selected")
 
         self.openLibraryButton = ttk.Button(self.frame, text = "Open Library", image=self.openLibraryimage,command=self.app.openLibrary)
         self.openLibraryButton.pack(side=tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.openLibraryButton, "Open Library", 1)
+            tktooltip.ToolTip(self.openLibraryButton, text="Open Library")
 
         self.flipConnectorButton = ttk.Button(self.frame, text = "Flip Connector", image = self.flipConnectorImage,command=self.app.flip)
         self.flipConnectorButton.pack(side="left")
         if tktooltip:
-            tktooltip.ToolTip(self.flipConnectorButton, "Flip Button", 1)
+            tktooltip.ToolTip(self.flipConnectorButton, text="Flip Button")
 
         self.generateCutsheetButton = ttk.Button(self.frame, text = "generate Cutsheet", image = self.cutsheetImage, command = self.app.generate_cutlist)
         self.generateCutsheetButton.pack(side = tk.LEFT)
         if tktooltip:
-            tktooltip.ToolTip(self.generateCutsheetButton, "generate cutsheet", 1)
+            tktooltip.ToolTip(self.generateCutsheetButton, text="generate cutsheet")
